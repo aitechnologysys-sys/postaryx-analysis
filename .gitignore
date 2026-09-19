@@ -1,0 +1,14 @@
+node_modules/
+npm-debug.log*
+.DS_Store
+.env
+.env.local
+*.log
+
+# SQLite catalogue (rebuilt automatically from the reports folder)
+data/
+
+# Report content lives on the server, not in the repo. The folder itself is
+# created on first start; only its README is tracked.
+reports/*
+!reports/README.md

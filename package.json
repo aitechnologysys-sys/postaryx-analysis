@@ -1,0 +1,19 @@
+{
+  "name": "postaryx-analysis-library",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Postaryx Internal Analysis - a private library for HTML analysis reports",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.1.0",
+    "multer": "^2.4.0"
+  }
+}
