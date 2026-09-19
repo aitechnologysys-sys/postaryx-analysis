@@ -9,17 +9,23 @@ function resolveFromRoot(value, fallback) {
   return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
 }
 
+// SQLite index. The files stay the source of truth - this is the catalogue
+// built from them, plus the things a folder cannot store (view counts,
+// upload history, stable URLs).
+const dbPath = resolveFromRoot(process.env.DB_PATH, path.join('data', 'library.db'));
+
 module.exports = {
   projectRoot,
   // Where the HTML reports live. Override with REPORTS_DIR.
   reportsDir: resolveFromRoot(process.env.REPORTS_DIR, 'reports'),
-  // SQLite index. The files stay the source of truth - this is the catalogue
-  // built from them, plus the things a folder cannot store (view counts,
-  // upload history, stable URLs).
-  dbPath: resolveFromRoot(process.env.DB_PATH, path.join('data', 'library.db')),
+  dbPath,
   // Deleted reports are moved here instead of being erased, so a mistake is a
-  // "mv" away from being undone.
-  trashDir: resolveFromRoot(process.env.TRASH_DIR, path.join('data', 'trash')),
+  // "mv" away from being undone. It defaults to sitting beside the database,
+  // so pointing DB_PATH at a mounted volume keeps the trash on that volume
+  // too - in a container the default location would not survive a restart.
+  trashDir: process.env.TRASH_DIR
+    ? resolveFromRoot(process.env.TRASH_DIR, '')
+    : path.join(path.dirname(dbPath), 'trash'),
   publicDir: path.join(projectRoot, 'public'),
   port: Number(process.env.PORT || 4000),
   host: process.env.HOST || '0.0.0.0',

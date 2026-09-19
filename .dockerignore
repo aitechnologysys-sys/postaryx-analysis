@@ -1,0 +1,22 @@
+# Dependencies are installed inside the image
+node_modules
+npm-debug.log*
+
+# Runtime data belongs on volumes, never in the image
+data
+reports
+
+# Not needed to run the app
+.git
+.gitignore
+.github
+*.md
+.env
+.env.*
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+.vscode
+.idea
+*.log

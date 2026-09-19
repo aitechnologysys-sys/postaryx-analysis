@@ -69,9 +69,14 @@ function trashReport(relPath) {
     }
   }
 
+  // Shown to the user: a path relative to the project when the trash sits
+  // inside it, and the absolute path when it does not (a Docker volume, or
+  // any TRASH_DIR elsewhere on the machine).
+  const relative = path.relative(config.projectRoot, dest);
+
   return {
     trashPath: dest,
-    relTrashPath: path.relative(config.projectRoot, dest),
+    relTrashPath: relative.startsWith('..') ? dest : relative,
     sidecars: movedSidecars,
   };
 }

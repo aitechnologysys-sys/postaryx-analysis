@@ -224,6 +224,65 @@ nothing is rewritten or sanitised.
 
 ---
 
+## Running with Docker (recommended for the server)
+
+Nothing but Docker is needed on the host - no Node.js, no build tools. The image carries the app;
+your reports and database stay on the host as mounted volumes.
+
+```bash
+docker compose up -d --build     # build and start
+```
+
+Then open **http://localhost:4000**.
+
+| Task | Command |
+| --- | --- |
+| Build | `docker compose build` |
+| Start (rebuild if needed) | `docker compose up -d --build` |
+| Stop | `docker compose down` |
+| Stop and remove volumes' contents | never needed - the data is in `./reports` and `./data` |
+| Logs (follow) | `docker compose logs -f` |
+| Last 100 log lines | `docker compose logs --tail=100` |
+| Status and health | `docker compose ps` |
+| Restart | `docker compose restart` |
+| Shell inside the container | `docker compose exec app sh` |
+| Update to the latest code | `git pull && docker compose up -d --build` |
+
+### What is mounted where
+
+| Host | Container | Holds |
+| --- | --- | --- |
+| `./reports` | `/storage/reports` | The HTML reports - the source of truth. **Back this up.** |
+| `./data` | `/storage/data` | `library.db` (the catalogue) and `trash/` (deleted reports) |
+
+Both are created on first start if missing. Nothing is written inside the image, so
+`docker compose down` and rebuilds never lose data.
+
+### Environment
+
+Set in `docker-compose.yml`; override per host with a `.env` file next to it:
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `REPORTS_DIR` | `/storage/reports` | Inside the container; change the volume, not this |
+| `DB_PATH` | `/storage/data/library.db` | `TRASH_DIR` follows it unless set explicitly |
+| `APP_PORT` | `4000` | Host port to publish |
+| `BIND_ADDR` | `127.0.0.1` | Localhost only. Set `0.0.0.0` to expose on the network |
+| `SCAN_CACHE_MS` | `2000` | How long a folder scan is reused |
+
+The default binding is deliberate: with Cloudflare Tunnel running on the same host, the app never
+needs to listen on a public interface. If you put it on `0.0.0.0`, make sure something in front
+is doing authentication - the app has none of its own.
+
+### Notes
+
+- The container runs as the unprivileged `node` user (uid 1000). If your host folders are owned
+  by another user, run `sudo chown -R 1000:1000 ./reports ./data` once.
+- Run a single container. SQLite tolerates concurrent readers, but two instances scanning and
+  writing the same catalogue can race.
+- Health is checked through the app's own `/healthz`; `docker compose ps` shows it.
+- Adding reports by hand still works - drop files into `./reports` on the host and they appear.
+
 ## 4. Connecting it to analysis.postaryx.com
 
 The app is a plain HTTP server on one port, so any of these work. The recommended route needs
@@ -234,9 +293,8 @@ The app is a plain HTTP server on one port, so any of these work. The recommende
 On the machine that will host the tool (a small VPS or an office server):
 
 ```bash
-# 1. Run the app permanently
-npm install --omit=dev
-PORT=4000 NODE_ENV=production npm start      # or run it under pm2 / systemd
+# 1. Run the app permanently (Docker keeps it up across reboots)
+docker compose up -d --build
 
 # 2. Install cloudflared and log in to the Postaryx Cloudflare account
 cloudflared tunnel login
@@ -372,7 +430,7 @@ reports/                 ← your HTML reports live here
 | `HOST` | `0.0.0.0` | Interface to bind |
 | `REPORTS_DIR` | `./reports` | Where the reports live |
 | `DB_PATH` | `./data/library.db` | Where the SQLite catalogue is kept |
-| `TRASH_DIR` | `./data/trash` | Where deleted reports are moved |
+| `TRASH_DIR` | next to `DB_PATH` | Where deleted reports are moved |
 | `SCAN_CACHE_MS` | `2000` | How long a folder scan is reused |
 
 ---

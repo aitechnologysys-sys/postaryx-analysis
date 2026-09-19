@@ -1,0 +1,47 @@
+name: postaryx-analysis
+
+services:
+  app:
+    build: .
+    image: postaryx-analysis:latest
+    container_name: postaryx-analysis
+    restart: unless-stopped
+    # Reaps zombies and forwards SIGTERM, so the app shuts down cleanly.
+    init: true
+
+    # Published on localhost only: in production Cloudflare Tunnel reaches it
+    # from the same host. Set BIND_ADDR=0.0.0.0 to expose it on the network.
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${APP_PORT:-4000}:4000"
+
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      REPORTS_DIR: /storage/reports
+      DB_PATH: /storage/data/library.db
+      # TRASH_DIR defaults to /storage/data/trash, beside the database.
+      SCAN_CACHE_MS: 2000
+
+    volumes:
+      # The HTML reports: the source of truth. Back this up.
+      - ./reports:/storage/reports
+      # SQLite catalogue + the trash folder. Rebuildable, but worth keeping.
+      - ./data:/storage/data
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
